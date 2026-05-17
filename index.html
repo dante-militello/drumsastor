@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drum Pattern Editor</title>
+<style>
+  :root {
+    --bg: #0f0f10;
+    --panel: #18181a;
+    --panel-border: #fbbf24;
+    --text: #e5e5e5;
+    --muted: #9ca3af;
+    --accent: #fbbf24;
+    --accent-dim: #fbbf2433;
+    --hit: #ffffff;
+    --hit-glow: #fef3c7;
+    --grid-line: #2a2a2d;
+    --grid-line-strong: #3a3a3f;
+    --cell-bg: #1f1f22;
+    --cell-active: #fbbf2422;
+    --green: #34d399;
+    --red: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 22px 80px; }
+
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  h1 { font-size: 1.45rem; margin: 0; letter-spacing: 0.2px; }
+  h1 .accent { color: var(--accent); }
+  .session-title {
+    background: transparent;
+    border: 1px dashed transparent;
+    color: var(--text);
+    font-size: 1.1rem;
+    padding: 4px 8px;
+    margin-left: 8px;
+    border-radius: 5px;
+    width: 240px;
+    max-width: 50vw;
+    font-family: inherit;
+  }
+  .session-title:hover { border-color: var(--grid-line-strong); }
+  .session-title:focus { outline: none; border-color: var(--accent); border-style: solid; }
+
+  .toolbar { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn {
+    background: var(--accent);
+    color: #1a1a1a;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 7px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.05s;
+    letter-spacing: 0.2px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn.ghost:hover { background: var(--accent-dim); }
+  .btn.dim { background: transparent; color: var(--muted); border: 1px solid var(--grid-line-strong); }
+  .btn.dim:hover { color: var(--text); border-color: var(--text); }
+  .btn.danger { background: var(--red); color: white; }
+
+  .transport {
+    position: sticky;
+    top: 0;
+    background: rgba(15,15,16,0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 12px 0;
+    z-index: 50;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--grid-line);
+    margin-bottom: 20px;
+  }
+  .bpm-group {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel); padding: 7px 12px;
+    border-radius: 7px; border: 1px solid var(--grid-line-strong);
+  }
+  .bpm-group label { color: var(--muted); font-size: 0.82rem; }
+  .bpm-value {
+    font-size: 1.2rem; font-weight: 700; color: var(--accent);
+    min-width: 50px; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] { width: 140px; accent-color: var(--accent); }
+
+  .loop-group {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); padding: 7px 12px;
+    border-radius: 7px; border: 1px solid var(--grid-line-strong);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  .loop-group select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--grid-line-strong);
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 0.82rem;
+    font-family: inherit;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    border: 2px dashed var(--grid-line-strong);
+    border-radius: 10px;
+    color: var(--muted);
+  }
+  .empty h2 { color: var(--text); font-weight: 600; margin: 0 0 8px; }
+  .empty p { margin: 4px 0 18px; font-size: 0.9rem; }
+  .empty .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  .pattern {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 18px;
+    transition: box-shadow 0.2s;
+  }
+  .pattern.active { box-shadow: 0 0 0 2px var(--accent), 0 8px 30px rgba(251, 191, 36, 0.12); }
+  .pattern-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .pattern-title-input {
+    background: transparent;
+    border: 1px dashed transparent;
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 5px;
+    flex: 1 1 200px;
+    min-width: 0;
+    font-family: inherit;
+  }
+  .pattern-title-input:hover { border-color: var(--grid-line-strong); }
+  .pattern-title-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    border-style: solid;
+    background: var(--bg);
+  }
+
+  .pattern-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .icon-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--grid-line-strong);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn.play-btn.playing { background: var(--accent); color: #1a1a1a; border-color: var(--accent); }
+  .icon-btn.delete:hover { color: var(--red); border-color: var(--red); }
+
+  .pattern-meta {
+    display: flex; gap: 10px; align-items: center;
+    margin-bottom: 10px; font-size: 0.78rem; color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .pattern-meta select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--grid-line-strong);
+    border-radius: 4px;
+    padding: 3px 5px;
+    font-size: 0.78rem;
+    font-family: inherit;
+  }
+
+  .grid-wrap { overflow-x: auto; }
+  .grid {
+    display: grid;
+    gap: 2px;
+    background: var(--panel);
+    min-width: 600px;
+  }
+  .grid .label {
+    color: var(--text); font-size: 0.85rem;
+    padding: 8px 6px;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 12px;
+  }
+  .grid .head {
+    color: var(--muted); font-size: 0.78rem;
+    text-align: center; padding: 4px 0 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .grid .head.beat { color: var(--text); font-weight: 700; font-size: 0.95rem; }
+  .cell {
+    position: relative; height: 30px;
+    background: var(--cell-bg); cursor: pointer;
+    transition: background 0.08s;
+    border-left: 1px solid transparent;
+    user-select: none;
+  }
+  .cell.beat-start { border-left: 1px solid var(--grid-line-strong); }
+  .cell:hover { background: #2a2a2e; }
+  .cell.on::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 18px; height: 18px;
+    transform: translate(-50%, -50%);
+    background: var(--hit); border-radius: 50%;
+    box-shadow: 0 0 6px rgba(255,255,255,0.25);
+  }
+  .cell.playing { background: var(--cell-active); }
+  .cell.playing.on::after {
+    background: var(--hit-glow);
+    box-shadow: 0 0 14px var(--accent), 0 0 4px white;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+
+  /* Modal */
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 22px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+  }
+  .modal h2 {
+    margin: 0 0 12px;
+    color: var(--accent);
+    font-size: 1.1rem;
+  }
+  .modal textarea {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 240px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--grid-line-strong);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.82rem;
+    resize: vertical;
+  }
+  .modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    margin-top: 14px; flex-wrap: wrap;
+  }
+  .modal .hint { color: var(--muted); font-size: 0.8rem; margin: 4px 0 10px; }
+  .modal .error { color: var(--red); font-size: 0.85rem; margin-top: 8px; min-height: 1.2em; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    background: var(--accent);
+    color: #1a1a1a;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .footer {
+    margin-top: 26px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  kbd {
+    background: var(--panel);
+    border: 1px solid var(--grid-line-strong);
+    border-radius: 4px;
+    padding: 1px 6px; font-size: 0.78rem;
+    color: var(--accent);
+    font-family: ui-monospace, monospace;
+  }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 14px 12px 60px; }
+    h1 { font-size: 1.1rem; }
+    .session-title { font-size: 0.95rem; width: 100%; max-width: none; margin-left: 0; margin-top: 6px; }
+    .top { flex-direction: column; align-items: stretch; }
+    .toolbar { width: 100%; }
+    .toolbar .btn { flex: 1 1 auto; min-width: 90px; font-size: 0.82rem; padding: 9px 8px; }
+
+    .transport { padding: 10px 0; gap: 8px; }
+    .bpm-group, .loop-group { flex: 1 1 100%; padding: 7px 10px; flex-wrap: wrap; }
+    input[type="range"] { flex: 1 1 100%; width: 100%; }
+    .btn { padding: 10px 12px; flex: 1 1 auto; }
+    .transport > .btn { min-width: 110px; }
+
+    .pattern { padding: 10px 8px 12px; }
+    .pattern-title-input { font-size: 0.92rem; }
+    .pattern-actions .icon-btn { padding: 6px 8px; font-size: 0.74rem; min-height: 30px; }
+
+    .grid { grid-template-columns: 52px repeat(16, minmax(34px, 1fr)) !important; min-width: 600px; }
+    .grid .label { font-size: 0.74rem; padding-right: 6px; padding-left: 4px; }
+    .grid .head { font-size: 0.7rem; }
+    .grid .head.beat { font-size: 0.82rem; }
+    .cell { height: 34px; }
+    .cell.on::after { width: 16px; height: 16px; }
+    .grid-wrap {
+      -webkit-overflow-scrolling: touch;
+      mask-image: linear-gradient(to right, black calc(100% - 14px), transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, black calc(100% - 14px), transparent 100%);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+      <h1><span class="accent">♫</span> Drum Editor</h1>
+      <input class="session-title" id="sessionTitle" type="text" placeholder="Nombre de la sesión" value="Nueva sesión">
+    </div>
+    <div class="toolbar">
+      <button class="btn ghost" id="importBtn">⬇ Importar</button>
+      <button class="btn ghost" id="exportBtn">⬆ Exportar</button>
+      <button class="btn dim" id="clearAllBtn">Vaciar todo</button>
+    </div>
+  </div>
+
+  <div class="transport">
+    <button class="btn" id="playAllBtn">▶ Play</button>
+    <button class="btn ghost" id="addBtn">+ Patrón</button>
+
+    <div class="bpm-group">
+      <label>BPM</label>
+      <input type="range" id="bpmRange" min="40" max="220" value="90" step="1">
+      <div class="bpm-value" id="bpmValue">90</div>
+    </div>
+
+    <div class="loop-group">
+      <label>Modo</label>
+      <select id="loopMode">
+        <option value="single">Repetir patrón</option>
+        <option value="sequence">Secuencia (todos)</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="patterns"></div>
+
+  <p class="footer">Click para encender/apagar, arrastrá para pintar varios. JSON v1 · Auto-guardado en este navegador.</p>
+</div>
+
+<!-- Import/Export Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">Exportar JSON</h2>
+    <p class="hint" id="modalHint"></p>
+    <textarea id="modalText" spellcheck="false"></textarea>
+    <div class="error" id="modalError"></div>
+    <div class="modal-actions">
+      <button class="btn dim" id="modalCloseBtn">Cerrar</button>
+      <button class="btn ghost" id="modalCopyBtn">Copiar</button>
+      <button class="btn ghost" id="modalDownloadBtn">Descargar .json</button>
+      <button class="btn" id="modalApplyBtn">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ Constants ============
+const STORAGE_KEY = 'drumEditor.v1';
+const TRACK_LABELS = { hihat: 'Hi-Hat', snare: 'Snare', kick: 'Kick' };
+const TRACK_ORDER = ['hihat', 'snare', 'kick'];
+const SUBDIV_LABELS_16 = ['1','e','+','a', '2','e','+','a', '3','e','+','a', '4','e','+','a'];
+const SUBDIV_LABELS_8  = ['1','+','2','+','3','+','4','+'];
+const SUBDIV_LABELS_32 = (() => {
+  const out = [];
+  for (let b = 1; b <= 4; b++) {
+    out.push(String(b), 'ta', 'e', 'ta', '+', 'ta', 'a', 'ta');
+  }
+  return out;
+})();
+
+function stepLabels(steps) {
+  if (steps === 8) return SUBDIV_LABELS_8;
+  if (steps === 32) return SUBDIV_LABELS_32;
+  return SUBDIV_LABELS_16;
+}
+function stepsPerBeat(steps) { return steps / 4; }
+
+// ============ State ============
+const state = {
+  sessionTitle: 'Nueva sesión',
+  patterns: [], // {id, title, steps, tracks}
+  bpm: 90,
+  loopMode: 'single',
+  playing: false,
+  activeIdx: 0,
+  repsInPattern: 0,
+};
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function emptyTracks(steps) {
+  const out = {};
+  TRACK_ORDER.forEach(t => out[t] = new Array(steps).fill(0));
+  return out;
+}
+
+function newPattern(title) {
+  return {
+    id: uid(),
+    title: title || 'Patrón ' + (state.patterns.length + 1),
+    steps: 16,
+    tracks: emptyTracks(16),
+  };
+}
+
+// ============ Persistence ============
+function save() {
+  try {
+    const data = {
+      version: 1,
+      title: state.sessionTitle,
+      bpm: state.bpm,
+      loopMode: state.loopMode,
+      patterns: state.patterns.map(p => ({
+        title: p.title, steps: p.steps, tracks: p.tracks,
+      })),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) { /* ignore */ }
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    applyImported(data, false);
+    return true;
+  } catch (e) { return false; }
+}
+
+// ============ Import / Export ============
+function exportJSON() {
+  return {
+    version: 1,
+    title: state.sessionTitle,
+    bpm: state.bpm,
+    loopMode: state.loopMode,
+    patterns: state.patterns.map(p => ({
+      title: p.title, steps: p.steps, tracks: p.tracks,
+    })),
+  };
+}
+
+function validatePattern(p, idx) {
+  if (typeof p.title !== 'string') throw new Error('Patrón ' + idx + ': "title" debe ser string');
+  if (![8, 16, 32].includes(p.steps)) throw new Error('Patrón ' + idx + ': "steps" debe ser 8, 16 o 32');
+  if (!p.tracks || typeof p.tracks !== 'object') throw new Error('Patrón ' + idx + ': "tracks" inválido');
+  TRACK_ORDER.forEach(t => {
+    if (!Array.isArray(p.tracks[t])) throw new Error('Patrón ' + idx + ': track "' + t + '" debe ser array');
+    if (p.tracks[t].length !== p.steps) throw new Error('Patrón ' + idx + ': track "' + t + '" debe tener ' + p.steps + ' elementos');
+  });
+}
+
+function applyImported(data, refresh) {
+  if (!data || typeof data !== 'object') throw new Error('JSON inválido');
+  if (!Array.isArray(data.patterns)) throw new Error('Falta el array "patterns"');
+  data.patterns.forEach((p, i) => validatePattern(p, i));
+
+  state.sessionTitle = typeof data.title === 'string' ? data.title : 'Sesión importada';
+  state.bpm = (typeof data.bpm === 'number' && data.bpm >= 40 && data.bpm <= 220) ? data.bpm : 90;
+  state.loopMode = (data.loopMode === 'sequence') ? 'sequence' : 'single';
+  state.patterns = data.patterns.map(p => ({
+    id: uid(),
+    title: p.title,
+    steps: p.steps,
+    tracks: {
+      hihat: p.tracks.hihat.map(v => v ? 1 : 0),
+      snare: p.tracks.snare.map(v => v ? 1 : 0),
+      kick:  p.tracks.kick.map(v => v ? 1 : 0),
+    },
+  }));
+  state.activeIdx = 0;
+  state.repsInPattern = 0;
+
+  if (refresh) {
+    syncControls();
+    renderAll();
+    save();
+  }
+}
+
+// ============ Audio ============
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playHiHat(time, accent) {
+  const ctx = getCtx();
+  const bufSize = Math.floor(0.04 * ctx.sampleRate);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * 0.8;
+  const noise = ctx.createBufferSource(); noise.buffer = buf;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(accent ? 0.32 : 0.16, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+  noise.connect(hp).connect(g).connect(ctx.destination);
+  noise.start(time); noise.stop(time + 0.05);
+}
+function playSnare(time) {
+  const ctx = getCtx();
+  const bufSize = Math.floor(0.2 * ctx.sampleRate);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+  const noise = ctx.createBufferSource(); noise.buffer = buf;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1500;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.55, time);
+  ng.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+  noise.connect(hp).connect(ng).connect(ctx.destination);
+  noise.start(time); noise.stop(time + 0.2);
+  const osc = ctx.createOscillator(); osc.type = 'triangle';
+  osc.frequency.setValueAtTime(220, time);
+  osc.frequency.exponentialRampToValueAtTime(110, time + 0.08);
+  const og = ctx.createGain();
+  og.gain.setValueAtTime(0.3, time);
+  og.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+  osc.connect(og).connect(ctx.destination);
+  osc.start(time); osc.stop(time + 0.12);
+}
+function playKick(time) {
+  const ctx = getCtx();
+  const osc = ctx.createOscillator(); osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, time);
+  osc.frequency.exponentialRampToValueAtTime(40, time + 0.12);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.9, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(time); osc.stop(time + 0.3);
+  const click = ctx.createOscillator(); click.type = 'square';
+  click.frequency.value = 1500;
+  const cg = ctx.createGain();
+  cg.gain.setValueAtTime(0.12, time);
+  cg.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+  click.connect(cg).connect(ctx.destination);
+  click.start(time); click.stop(time + 0.03);
+}
+function trigger(track, time, isBeat) {
+  if (track === 'hihat') playHiHat(time, isBeat);
+  else if (track === 'snare') playSnare(time);
+  else if (track === 'kick') playKick(time);
+}
+
+// ============ Rendering ============
+const patternsEl = document.getElementById('patterns');
+
+function makeEl(tag, opts) {
+  const el = document.createElement(tag);
+  if (opts) {
+    if (opts.cls) el.className = opts.cls;
+    if (opts.text !== undefined) el.textContent = opts.text;
+    if (opts.data) Object.keys(opts.data).forEach(k => el.dataset[k] = opts.data[k]);
+    if (opts.attrs) Object.keys(opts.attrs).forEach(k => el.setAttribute(k, opts.attrs[k]));
+  }
+  return el;
+}
+
+function renderAll() {
+  while (patternsEl.firstChild) patternsEl.removeChild(patternsEl.firstChild);
+
+  if (state.patterns.length === 0) {
+    const empty = makeEl('div', { cls: 'empty' });
+    empty.appendChild(makeEl('h2', { text: 'No hay patrones todavía' }));
+    empty.appendChild(makeEl('p', { text: 'Creá uno desde cero o importá un JSON.' }));
+    const row = makeEl('div', { cls: 'row' });
+    const createBtn = makeEl('button', { cls: 'btn', text: '+ Crear primer patrón' });
+    createBtn.addEventListener('click', addPattern);
+    const importBtn = makeEl('button', { cls: 'btn ghost', text: '⬇ Importar JSON' });
+    importBtn.addEventListener('click', openImport);
+    row.appendChild(createBtn);
+    row.appendChild(importBtn);
+    empty.appendChild(row);
+    patternsEl.appendChild(empty);
+    return;
+  }
+
+  state.patterns.forEach((p, idx) => patternsEl.appendChild(renderPattern(p, idx)));
+}
+
+function renderPattern(p, idx) {
+  const panel = makeEl('div', { cls: 'pattern', data: { id: p.id } });
+  if (state.playing && idx === state.activeIdx) panel.classList.add('active');
+
+  // Header
+  const header = makeEl('div', { cls: 'pattern-header' });
+  const titleIn = makeEl('input', { cls: 'pattern-title-input' });
+  titleIn.type = 'text';
+  titleIn.value = p.title;
+  titleIn.placeholder = 'Sin título';
+  titleIn.addEventListener('input', () => { p.title = titleIn.value; save(); });
+  header.appendChild(titleIn);
+
+  const actions = makeEl('div', { cls: 'pattern-actions' });
+
+  const playBtn = makeEl('button', { cls: 'icon-btn play-btn', text: '▶ Solo' });
+  playBtn.addEventListener('click', () => playSinglePattern(idx));
+  actions.appendChild(playBtn);
+
+  const clearBtn = makeEl('button', { cls: 'icon-btn', text: 'Limpiar' });
+  clearBtn.addEventListener('click', () => {
+    TRACK_ORDER.forEach(t => p.tracks[t] = new Array(p.steps).fill(0));
+    save(); renderAll();
+  });
+  actions.appendChild(clearBtn);
+
+  const dupBtn = makeEl('button', { cls: 'icon-btn', text: 'Duplicar' });
+  dupBtn.addEventListener('click', () => {
+    const copy = {
+      id: uid(),
+      title: p.title + ' (copia)',
+      steps: p.steps,
+      tracks: {
+        hihat: p.tracks.hihat.slice(),
+        snare: p.tracks.snare.slice(),
+        kick: p.tracks.kick.slice(),
+      },
+    };
+    state.patterns.splice(idx + 1, 0, copy);
+    save(); renderAll();
+  });
+  actions.appendChild(dupBtn);
+
+  const delBtn = makeEl('button', { cls: 'icon-btn delete', text: '✕' });
+  delBtn.title = 'Eliminar patrón';
+  delBtn.addEventListener('click', () => {
+    if (state.patterns.length === 0) return;
+    state.patterns.splice(idx, 1);
+    if (state.activeIdx >= state.patterns.length) state.activeIdx = 0;
+    save(); renderAll();
+  });
+  actions.appendChild(delBtn);
+
+  header.appendChild(actions);
+  panel.appendChild(header);
+
+  // Meta (steps selector)
+  const meta = makeEl('div', { cls: 'pattern-meta' });
+  meta.appendChild(makeEl('span', { text: 'Pasos:' }));
+  const stepsSel = makeEl('select');
+  [8, 16, 32].forEach(n => {
+    const opt = makeEl('option', { text: String(n) });
+    opt.value = n;
+    if (n === p.steps) opt.selected = true;
+    stepsSel.appendChild(opt);
+  });
+  stepsSel.addEventListener('change', () => {
+    const newSteps = +stepsSel.value;
+    TRACK_ORDER.forEach(t => {
+      const arr = new Array(newSteps).fill(0);
+      const min = Math.min(newSteps, p.tracks[t].length);
+      for (let i = 0; i < min; i++) arr[i] = p.tracks[t][i];
+      p.tracks[t] = arr;
+    });
+    p.steps = newSteps;
+    save(); renderAll();
+  });
+  meta.appendChild(stepsSel);
+  panel.appendChild(meta);
+
+  // Grid
+  const wrap = makeEl('div', { cls: 'grid-wrap' });
+  const grid = makeEl('div', { cls: 'grid' });
+  grid.style.gridTemplateColumns = '70px repeat(' + p.steps + ', 1fr)';
+
+  const labels = stepLabels(p.steps);
+  const spb = stepsPerBeat(p.steps);
+
+  grid.appendChild(makeEl('div', { cls: 'label' }));
+  labels.forEach((lbl, si) => {
+    grid.appendChild(makeEl('div', { cls: 'head' + (si % spb === 0 ? ' beat' : ''), text: lbl }));
+  });
+
+  TRACK_ORDER.forEach(track => {
+    grid.appendChild(makeEl('div', { cls: 'label', text: TRACK_LABELS[track] }));
+    for (let s = 0; s < p.steps; s++) {
+      const cell = makeEl('div', {
+        cls: 'cell' + (s % spb === 0 ? ' beat-start' : '') + (p.tracks[track][s] ? ' on' : ''),
+        data: { pattern: idx, track, step: s }
+      });
+      attachCellPaint(cell, p, track, s);
+      grid.appendChild(cell);
+    }
+  });
+
+  wrap.appendChild(grid);
+  panel.appendChild(wrap);
+  return panel;
+}
+
+// ----- Click & drag-to-paint -----
+let paintMode = null; // 'on' or 'off' once stroke starts
+let isPainting = false;
+function attachCellPaint(cell, p, track, s) {
+  cell.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const cur = p.tracks[track][s];
+    paintMode = cur ? 0 : 1;
+    isPainting = true;
+    p.tracks[track][s] = paintMode;
+    cell.classList.toggle('on', !!paintMode);
+    save();
+  });
+  cell.addEventListener('pointerenter', () => {
+    if (!isPainting || paintMode === null) return;
+    if (p.tracks[track][s] !== paintMode) {
+      p.tracks[track][s] = paintMode;
+      cell.classList.toggle('on', !!paintMode);
+      save();
+    }
+  });
+}
+window.addEventListener('pointerup', () => { isPainting = false; paintMode = null; });
+window.addEventListener('pointercancel', () => { isPainting = false; paintMode = null; });
+
+// ============ Playback ============
+const lookahead = 25.0;
+const scheduleAheadTime = 0.1;
+let nextNoteTime = 0;
+let currentStepLocal = 0;
+let currentPatternLocal = 0;
+let stepQueue = [];
+let scheduleId = null;
+
+function stepDuration(steps) {
+  return (60.0 / state.bpm) / (steps / 4);
+}
+
+function highlightStep(patternIdx, step) {
+  document.querySelectorAll('.cell.playing').forEach(c => c.classList.remove('playing'));
+  if (!state.playing) return;
+  const cells = document.querySelectorAll('.cell[data-pattern="' + patternIdx + '"][data-step="' + step + '"]');
+  cells.forEach(c => c.classList.add('playing'));
+}
+
+function nextStep() {
+  const p = state.patterns[currentPatternLocal];
+  if (!p) return;
+  nextNoteTime += stepDuration(p.steps);
+  currentStepLocal++;
+  if (currentStepLocal >= p.steps) {
+    currentStepLocal = 0;
+    state.repsInPattern++;
+    if (state.loopMode === 'sequence' && state.repsInPattern >= 1) {
+      state.repsInPattern = 0;
+      currentPatternLocal = (currentPatternLocal + 1) % state.patterns.length;
+      state.activeIdx = currentPatternLocal;
+      setTimeout(updateActiveUI, 0);
+    }
+  }
+}
+
+function scheduleStep(step, time, patternIdx) {
+  const p = state.patterns[patternIdx];
+  if (!p) return;
+  const isBeat = step % stepsPerBeat(p.steps) === 0;
+  TRACK_ORDER.forEach(track => {
+    if (p.tracks[track][step]) trigger(track, time, isBeat);
+  });
+  stepQueue.push({ step, time, patternIdx });
+}
+
+function schedulerTick() {
+  const ctx = getCtx();
+  while (nextNoteTime < ctx.currentTime + scheduleAheadTime) {
+    scheduleStep(currentStepLocal, nextNoteTime, currentPatternLocal);
+    nextStep();
+  }
+}
+
+function uiTick() {
+  if (!state.playing) return;
+  const ctx = getCtx();
+  while (stepQueue.length > 0 && stepQueue[0].time <= ctx.currentTime) {
+    const ev = stepQueue.shift();
+    highlightStep(ev.patternIdx, ev.step);
+  }
+  requestAnimationFrame(uiTick);
+}
+
+function updateActiveUI() {
+  document.querySelectorAll('.pattern').forEach((el, i) => {
+    el.classList.toggle('active', state.playing && i === state.activeIdx);
+  });
+  document.querySelectorAll('.play-btn').forEach((b, i) => {
+    const playing = state.playing && i === state.activeIdx;
+    b.classList.toggle('playing', playing);
+    b.textContent = playing ? '⏸ Tocando' : '▶ Solo';
+  });
+}
+
+function startPlayback(startIdx) {
+  if (state.patterns.length === 0) return;
+  const ctx = getCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  if (state.playing) stopPlayback();
+  state.playing = true;
+  state.activeIdx = startIdx;
+  currentStepLocal = 0;
+  currentPatternLocal = startIdx;
+  state.repsInPattern = 0;
+  nextNoteTime = ctx.currentTime + 0.06;
+  stepQueue = [];
+  scheduleId = setInterval(schedulerTick, lookahead);
+  requestAnimationFrame(uiTick);
+  document.getElementById('playAllBtn').textContent = '■ Stop';
+  document.getElementById('playAllBtn').classList.add('danger');
+  updateActiveUI();
+}
+
+function stopPlayback() {
+  state.playing = false;
+  if (scheduleId) clearInterval(scheduleId);
+  scheduleId = null;
+  document.querySelectorAll('.cell.playing').forEach(c => c.classList.remove('playing'));
+  document.getElementById('playAllBtn').textContent = '▶ Play';
+  document.getElementById('playAllBtn').classList.remove('danger');
+  updateActiveUI();
+}
+
+function playSinglePattern(idx) {
+  if (state.playing && state.activeIdx === idx) { stopPlayback(); return; }
+  state.loopMode = 'single';
+  document.getElementById('loopMode').value = 'single';
+  startPlayback(idx);
+}
+
+// ============ Toolbar actions ============
+function addPattern() {
+  state.patterns.push(newPattern());
+  save();
+  renderAll();
+  // Scroll to new pattern
+  setTimeout(() => {
+    const els = document.querySelectorAll('.pattern');
+    if (els.length) els[els.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 30);
+}
+
+function clearAll() {
+  if (!confirm('¿Vaciar todos los patrones? Esto no se puede deshacer.')) return;
+  stopPlayback();
+  state.patterns = [];
+  save();
+  renderAll();
+}
+
+// ============ Modal (Import/Export) ============
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalHint = document.getElementById('modalHint');
+const modalText = document.getElementById('modalText');
+const modalError = document.getElementById('modalError');
+const modalApplyBtn = document.getElementById('modalApplyBtn');
+const modalCopyBtn = document.getElementById('modalCopyBtn');
+const modalDownloadBtn = document.getElementById('modalDownloadBtn');
+
+function openExport() {
+  modalTitle.textContent = 'Exportar JSON';
+  modalHint.textContent = 'Copiá el JSON o descargalo como archivo.';
+  modalText.value = JSON.stringify(exportJSON(), null, 2);
+  modalText.readOnly = true;
+  modalApplyBtn.style.display = 'none';
+  modalCopyBtn.style.display = '';
+  modalDownloadBtn.style.display = '';
+  modalError.textContent = '';
+  modal.classList.add('show');
+}
+
+function openImport() {
+  modalTitle.textContent = 'Importar JSON';
+  modalHint.textContent = 'Pegá un JSON exportado previamente. Reemplaza la sesión actual.';
+  modalText.value = '';
+  modalText.readOnly = false;
+  modalApplyBtn.style.display = '';
+  modalCopyBtn.style.display = 'none';
+  modalDownloadBtn.style.display = 'none';
+  modalError.textContent = '';
+  modal.classList.add('show');
+  setTimeout(() => modalText.focus(), 30);
+}
+
+function closeModal() { modal.classList.remove('show'); }
+
+document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+modalApplyBtn.addEventListener('click', () => {
+  try {
+    const data = JSON.parse(modalText.value);
+    applyImported(data, true);
+    closeModal();
+    showToast('Importado ✓');
+  } catch (e) {
+    modalError.textContent = 'Error: ' + e.message;
+  }
+});
+
+modalCopyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(modalText.value);
+    showToast('Copiado al portapapeles ✓');
+  } catch (e) {
+    modalText.select();
+    document.execCommand('copy');
+    showToast('Copiado ✓');
+  }
+});
+
+modalDownloadBtn.addEventListener('click', () => {
+  const blob = new Blob([modalText.value], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safe = (state.sessionTitle || 'sesion').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 40);
+  a.href = url;
+  a.download = safe + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+// ============ Toast ============
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ============ Controls wiring ============
+document.getElementById('playAllBtn').addEventListener('click', () => {
+  if (state.playing) stopPlayback();
+  else startPlayback(state.activeIdx < state.patterns.length ? state.activeIdx : 0);
+});
+document.getElementById('addBtn').addEventListener('click', addPattern);
+document.getElementById('importBtn').addEventListener('click', openImport);
+document.getElementById('exportBtn').addEventListener('click', openExport);
+document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+
+const bpmRange = document.getElementById('bpmRange');
+const bpmValueEl = document.getElementById('bpmValue');
+bpmRange.addEventListener('input', (e) => {
+  state.bpm = +e.target.value;
+  bpmValueEl.textContent = state.bpm;
+  save();
+});
+document.getElementById('loopMode').addEventListener('change', (e) => {
+  state.loopMode = e.target.value;
+  state.repsInPattern = 0;
+  save();
+});
+
+document.getElementById('sessionTitle').addEventListener('input', (e) => {
+  state.sessionTitle = e.target.value;
+  save();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (state.playing) stopPlayback();
+    else startPlayback(state.activeIdx < state.patterns.length ? state.activeIdx : 0);
+  } else if (e.key === 'Escape') {
+    if (modal.classList.contains('show')) closeModal();
+  }
+});
+
+function syncControls() {
+  document.getElementById('sessionTitle').value = state.sessionTitle;
+  bpmRange.value = state.bpm;
+  bpmValueEl.textContent = state.bpm;
+  document.getElementById('loopMode').value = state.loopMode;
+}
+
+// ============ Init ============
+const loaded = load();
+syncControls();
+renderAll();
+</script>
+
+</body>
+</html>
