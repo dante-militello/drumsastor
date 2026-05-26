@@ -317,6 +317,22 @@
     font-family: ui-monospace, monospace;
   }
 
+  /* Viewer mode: hide editor-only controls when #editor is not in URL */
+  body.viewer-only #importBtn,
+  body.viewer-only #exportBtn,
+  body.viewer-only #clearAllBtn,
+  body.viewer-only #addBtn,
+  body.viewer-only .pattern-actions .icon-btn.clear-btn,
+  body.viewer-only .pattern-actions .icon-btn.dup-btn,
+  body.viewer-only .pattern-actions .icon-btn.delete,
+  body.viewer-only .pattern-meta,
+  body.viewer-only .footer { display: none !important; }
+  body.viewer-only .session-title,
+  body.viewer-only .pattern-title-input { pointer-events: none; border-color: transparent !important; }
+  body.viewer-only .cell { cursor: default; }
+  body.viewer-only .cell:hover { background: var(--cell-bg); }
+  body.viewer-only .cell.playing { background: var(--cell-active); }
+
   @media (max-width: 720px) {
     .wrap { padding: 14px 12px 60px; }
     h1 { font-size: 1.1rem; }
@@ -619,15 +635,19 @@ function renderAll() {
   if (state.patterns.length === 0) {
     const empty = makeEl('div', { cls: 'empty' });
     empty.appendChild(makeEl('h2', { text: 'No hay patrones todavía' }));
-    empty.appendChild(makeEl('p', { text: 'Creá uno desde cero o importá un JSON.' }));
-    const row = makeEl('div', { cls: 'row' });
-    const createBtn = makeEl('button', { cls: 'btn', text: '+ Crear primer patrón' });
-    createBtn.addEventListener('click', addPattern);
-    const importBtn = makeEl('button', { cls: 'btn ghost', text: '⬇ Importar JSON' });
-    importBtn.addEventListener('click', openImport);
-    row.appendChild(createBtn);
-    row.appendChild(importBtn);
-    empty.appendChild(row);
+    if (isEditorMode) {
+      empty.appendChild(makeEl('p', { text: 'Creá uno desde cero o importá un JSON.' }));
+      const row = makeEl('div', { cls: 'row' });
+      const createBtn = makeEl('button', { cls: 'btn', text: '+ Crear primer patrón' });
+      createBtn.addEventListener('click', addPattern);
+      const importBtn = makeEl('button', { cls: 'btn ghost', text: '⬇ Importar JSON' });
+      importBtn.addEventListener('click', openImport);
+      row.appendChild(createBtn);
+      row.appendChild(importBtn);
+      empty.appendChild(row);
+    } else {
+      empty.appendChild(makeEl('p', { text: 'Agregá #editor a la URL para crear o importar patrones.' }));
+    }
     patternsEl.appendChild(empty);
     return;
   }
@@ -654,14 +674,14 @@ function renderPattern(p, idx) {
   playBtn.addEventListener('click', () => playSinglePattern(idx));
   actions.appendChild(playBtn);
 
-  const clearBtn = makeEl('button', { cls: 'icon-btn', text: 'Limpiar' });
+  const clearBtn = makeEl('button', { cls: 'icon-btn clear-btn', text: 'Limpiar' });
   clearBtn.addEventListener('click', () => {
     TRACK_ORDER.forEach(t => p.tracks[t] = new Array(p.steps).fill(0));
     save(); renderAll();
   });
   actions.appendChild(clearBtn);
 
-  const dupBtn = makeEl('button', { cls: 'icon-btn', text: 'Duplicar' });
+  const dupBtn = makeEl('button', { cls: 'icon-btn dup-btn', text: 'Duplicar' });
   dupBtn.addEventListener('click', () => {
     const copy = {
       id: uid(),
@@ -749,6 +769,7 @@ function renderPattern(p, idx) {
 let paintMode = null; // 'on' or 'off' once stroke starts
 let isPainting = false;
 function attachCellPaint(cell, p, track, s) {
+  if (!isEditorMode) return;
   cell.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     const cur = p.tracks[track][s];
@@ -1033,10 +1054,21 @@ function syncControls() {
   document.getElementById('loopMode').value = state.loopMode;
 }
 
+// ============ Editor mode ============
+let isEditorMode = false;
+function applyEditorMode() {
+  isEditorMode = window.location.hash.toLowerCase() === '#editor';
+  document.body.classList.toggle('viewer-only', !isEditorMode);
+  const sessionTitleEl = document.getElementById('sessionTitle');
+  sessionTitleEl.readOnly = !isEditorMode;
+  renderAll();
+}
+window.addEventListener('hashchange', applyEditorMode);
+
 // ============ Init ============
 const loaded = load();
 syncControls();
-renderAll();
+applyEditorMode();
 </script>
 
 </body>
