@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Drum Pattern Editor</title>
+<title>Ejercicios de Patrones · Astor Estudios</title>
 <style>
   :root {
     --bg: #0f0f10;
@@ -39,6 +39,7 @@
   }
   h1 { font-size: 1.45rem; margin: 0; letter-spacing: 0.2px; }
   h1 .accent { color: var(--accent); }
+  h1 .subtitle { color: var(--muted); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.3px; }
   .session-title {
     background: transparent;
     border: 1px dashed transparent;
@@ -109,14 +110,27 @@
     font-size: 0.82rem; color: var(--muted);
   }
   .loop-group select {
-    background: var(--bg);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: var(--bg);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path fill='%23fbbf24' d='M6 8L0 0h12z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 9px 6px;
     color: var(--text);
-    border: 1px solid var(--grid-line-strong);
-    border-radius: 5px;
-    padding: 4px 6px;
-    font-size: 0.82rem;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 5px 24px 5px 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
     font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
   }
+  .loop-group select:hover { background-color: #1f1f22; }
+  .loop-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  .loop-group select option { background: var(--panel); color: var(--text); }
 
   .empty {
     text-align: center;
@@ -281,6 +295,48 @@
   .modal .hint { color: var(--muted); font-size: 0.8rem; margin: 4px 0 10px; }
   .modal .error { color: var(--red); font-size: 0.85rem; margin-top: 8px; min-height: 1.2em; }
 
+  /* Rotate-phone banner */
+  .rotate-banner {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: linear-gradient(90deg, var(--accent), #f59e0b);
+    color: #1a1a1a;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: center;
+    z-index: 150;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .rotate-banner .rot-ico {
+    display: inline-block;
+    font-size: 1.1rem;
+    animation: rotHint 2s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .rotate-banner .rot-close {
+    background: transparent;
+    border: 1px solid #1a1a1a;
+    color: #1a1a1a;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    cursor: pointer;
+    margin-left: 6px;
+  }
+  @keyframes rotHint {
+    0%, 100% { transform: rotate(0deg); }
+    40% { transform: rotate(-90deg); }
+    60% { transform: rotate(-90deg); }
+  }
+  body.show-rotate-hint .rotate-banner { display: flex; }
+  body.show-rotate-hint .wrap { padding-top: 60px; }
+
   .toast {
     position: fixed;
     bottom: 24px;
@@ -325,8 +381,7 @@
   body.viewer-only .pattern-actions .icon-btn.clear-btn,
   body.viewer-only .pattern-actions .icon-btn.dup-btn,
   body.viewer-only .pattern-actions .icon-btn.delete,
-  body.viewer-only .pattern-meta,
-  body.viewer-only .footer { display: none !important; }
+  body.viewer-only .pattern-meta { display: none !important; }
   body.viewer-only .session-title,
   body.viewer-only .pattern-title-input { pointer-events: none; border-color: transparent !important; }
   body.viewer-only .cell { cursor: default; }
@@ -367,11 +422,17 @@
 </head>
 <body>
 
+<div class="rotate-banner" id="rotateBanner">
+  <span class="rot-ico">📱</span>
+  <span>Girá el celular para una mejor experiencia de práctica</span>
+  <button class="rot-close" id="rotateClose" aria-label="Cerrar">✕</button>
+</div>
+
 <div class="wrap">
   <div class="top">
     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-      <h1><span class="accent">♫</span> Drum Editor</h1>
-      <input class="session-title" id="sessionTitle" type="text" placeholder="Nombre de la sesión" value="Nueva sesión">
+      <h1><span class="accent">♫</span> Ejercicios de Patrones <span class="subtitle">· Astor Estudios</span></h1>
+      <input class="session-title" id="sessionTitle" type="text" placeholder="Ejercicios de Patrones" value="Ejercicios de Patrones">
     </div>
     <div class="toolbar">
       <button class="btn ghost" id="importBtn">⬇ Importar</button>
@@ -401,7 +462,7 @@
 
   <div id="patterns"></div>
 
-  <p class="footer">Click para encender/apagar, arrastrá para pintar varios. JSON v1 · Auto-guardado en este navegador.</p>
+  <p class="footer">Herramienta complementaria del curso <strong>Iniciación a la Batería</strong> · Astor Estudios. Usá <kbd>Space</kbd> para Play/Stop.</p>
 </div>
 
 <!-- Import/Export Modal -->
@@ -446,7 +507,7 @@ function stepsPerBeat(steps) { return steps / 4; }
 
 // ============ State ============
 const state = {
-  sessionTitle: 'Nueva sesión',
+  sessionTitle: 'Ejercicios de Patrones',
   patterns: [], // {id, title, steps, tracks}
   bpm: 90,
   loopMode: 'single',
@@ -526,7 +587,7 @@ function applyImported(data, refresh) {
   if (!Array.isArray(data.patterns)) throw new Error('Falta el array "patterns"');
   data.patterns.forEach((p, i) => validatePattern(p, i));
 
-  state.sessionTitle = typeof data.title === 'string' ? data.title : 'Sesión importada';
+  state.sessionTitle = typeof data.title === 'string' ? data.title : 'Ejercicios de Patrones';
   state.bpm = (typeof data.bpm === 'number' && data.bpm >= 40 && data.bpm <= 220) ? data.bpm : 90;
   state.loopMode = (data.loopMode === 'sequence') ? 'sequence' : 'single';
   state.patterns = data.patterns.map(p => ({
@@ -551,10 +612,45 @@ function applyImported(data, refresh) {
 
 // ============ Audio ============
 let audioCtx = null;
+let audioUnlocked = false;
+
 function getCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new Ctor();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
   return audioCtx;
 }
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const ctx = getCtx();
+    // Resume context (Android/Chrome requirement)
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    // Play a silent 1-sample buffer (iOS Safari requirement)
+    const buffer = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    if (src.start) src.start(0); else src.noteOn(0);
+    audioUnlocked = true;
+  } catch (e) { /* try again on next gesture */ }
+}
+
+// Attach unlock to first user gesture (covers iOS Safari, Android Chrome, desktop)
+['touchstart', 'touchend', 'mousedown', 'pointerdown', 'click', 'keydown'].forEach(ev => {
+  document.addEventListener(ev, unlockAudio, { capture: true, passive: true });
+});
+// Resume on visibility change (iOS suspends audio when tab hidden)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+});
 function playHiHat(time, accent) {
   const ctx = getCtx();
   const bufSize = Math.floor(0.04 * ctx.sampleRate);
@@ -634,7 +730,7 @@ function renderAll() {
 
   if (state.patterns.length === 0) {
     const empty = makeEl('div', { cls: 'empty' });
-    empty.appendChild(makeEl('h2', { text: 'No hay patrones todavía' }));
+    empty.appendChild(makeEl('h2', { text: 'Cargando ritmos del curso…' }));
     if (isEditorMode) {
       empty.appendChild(makeEl('p', { text: 'Creá uno desde cero o importá un JSON.' }));
       const row = makeEl('div', { cls: 'row' });
@@ -646,7 +742,7 @@ function renderAll() {
       row.appendChild(importBtn);
       empty.appendChild(row);
     } else {
-      empty.appendChild(makeEl('p', { text: 'Agregá #editor a la URL para crear o importar patrones.' }));
+      empty.appendChild(makeEl('p', { text: 'Si esto no carga, recargá la página.' }));
     }
     patternsEl.appendChild(empty);
     return;
@@ -1054,6 +1150,24 @@ function syncControls() {
   document.getElementById('loopMode').value = state.loopMode;
 }
 
+// ============ Rotate-phone hint ============
+const ROTATE_DISMISS_KEY = 'drumEditor.rotateDismissed.v1';
+function checkOrientation() {
+  if (sessionStorage.getItem(ROTATE_DISMISS_KEY) === '1') return;
+  const isMobile = window.matchMedia('(max-width: 820px)').matches;
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  document.body.classList.toggle('show-rotate-hint', isMobile && isPortrait);
+}
+const rotateClose = document.getElementById('rotateClose');
+if (rotateClose) {
+  rotateClose.addEventListener('click', () => {
+    sessionStorage.setItem(ROTATE_DISMISS_KEY, '1');
+    document.body.classList.remove('show-rotate-hint');
+  });
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
+
 // ============ Editor mode ============
 let isEditorMode = false;
 function applyEditorMode() {
@@ -1066,9 +1180,25 @@ function applyEditorMode() {
 window.addEventListener('hashchange', applyEditorMode);
 
 // ============ Init ============
-const loaded = load();
-syncControls();
-applyEditorMode();
+async function loadDefaultGrooves() {
+  try {
+    const res = await fetch('grooves_astor.json', { cache: 'no-cache' });
+    if (!res.ok) return false;
+    const data = await res.json();
+    applyImported(data, true);
+    return true;
+  } catch (e) { return false; }
+}
+
+(async () => {
+  const loaded = load();
+  syncControls();
+  applyEditorMode();
+  checkOrientation();
+  if (!loaded || state.patterns.length === 0) {
+    await loadDefaultGrooves();
+  }
+})();
 </script>
 
 </body>
