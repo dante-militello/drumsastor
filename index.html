@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ejercicios de Patrones · Astor Estudios</title>
+<title>Ejercicios · Astor Estudios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f0f10;
@@ -21,6 +24,7 @@
     --cell-active: #fbbf2422;
     --green: #34d399;
     --red: #ef4444;
+    --display-font: 'Archivo Black', 'Segoe UI', system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -388,6 +392,10 @@
   body.viewer-only .cell:hover { background: var(--cell-bg); }
   body.viewer-only .cell.playing { background: var(--cell-active); }
 
+  body.viewer-only #stickView .edit-only { display: none !important; }
+  body.viewer-only #stickView .stick-cell { cursor: default; }
+  body.viewer-only #stickView .stick-cell:hover { background: var(--cell-bg); }
+
   @media (max-width: 720px) {
     .wrap { padding: 14px 12px 60px; }
     h1 { font-size: 1.1rem; }
@@ -418,9 +426,147 @@
       -webkit-mask-image: linear-gradient(to right, black calc(100% - 14px), transparent 100%);
     }
   }
+
+  /* ===== View switching ===== */
+  #homeView, #groovesView, #stickView { display: none; }
+  body[data-view="home"] #homeView { display: block; }
+  body[data-view="grooves"] #groovesView { display: block; }
+  body[data-view="stick"] #stickView { display: block; }
+
+  .back-link {
+    background: transparent; border: none; color: var(--muted);
+    font-family: inherit; font-size: 0.85rem; cursor: pointer;
+    padding: 4px 2px; margin-bottom: 12px; letter-spacing: 0.3px;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* ===== Home / landing ===== */
+  .home { max-width: 880px; margin: 0 auto; padding: 64px 22px 80px; text-align: center; }
+  .home-head { margin-bottom: 46px; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--accent); font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; font-size: 0.78rem; margin-bottom: 16px;
+  }
+  .brand-mark { font-size: 1.05rem; }
+  .home-title {
+    font-family: var(--display-font);
+    font-size: clamp(2.1rem, 7vw, 3.6rem);
+    margin: 0; line-height: 1.04; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  .home-title .accent { color: var(--accent); }
+  .home-sub { color: var(--muted); margin: 14px 0 0; font-size: 1rem; }
+
+  .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .exercise-card {
+    appearance: none; text-align: left; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--grid-line-strong);
+    border-radius: 16px; padding: 30px 26px;
+    display: flex; flex-direction: column; gap: 14px;
+    color: var(--text); font-family: inherit;
+    transition: transform 0.18s ease, border-color 0.18s, box-shadow 0.18s;
+    opacity: 0; transform: translateY(16px);
+    animation: cardIn 0.5s ease forwards;
+  }
+  .exercise-card:nth-child(2) { animation-delay: 0.1s; }
+  .exercise-card:hover {
+    border-color: var(--accent); transform: translateY(-4px);
+    box-shadow: 0 14px 40px rgba(251,191,36,0.14);
+  }
+  .card-ico {
+    width: 64px; height: 64px; color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-dim); border-radius: 14px;
+  }
+  .card-ico svg { width: 40px; height: 40px; }
+  .card-name {
+    font-family: var(--display-font);
+    font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .card-desc { color: var(--muted); font-size: 0.9rem; line-height: 1.45; }
+  @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== Stick Control ===== */
+  .stick-stage {
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 30px 0 78px; min-height: 320px;
+  }
+  .pad { position: relative; width: 244px; height: 244px; }
+  .pad-core {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at 50% 36%, #2c2c30, #151517 72%);
+    border: 3px solid var(--accent);
+    box-shadow: 0 22px 54px rgba(0,0,0,0.55), inset 0 2px 12px rgba(255,255,255,0.05);
+  }
+  .pad-ripple {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 3px solid var(--accent); opacity: 0; pointer-events: none;
+  }
+  .pad-ripple.go { animation: ripple 0.42s ease-out; }
+  @keyframes ripple {
+    0% { opacity: 0.85; transform: scale(0.84); }
+    100% { opacity: 0; transform: scale(1.28); }
+  }
+  .stick {
+    position: absolute; bottom: -34px; width: 14px; height: 156px;
+    border-radius: 8px;
+    background: linear-gradient(0deg, #e2bd78, #a87b3a);
+    box-shadow: 0 -5px 12px rgba(0,0,0,0.45);
+    transition: transform 0.09s ease-out;
+  }
+  .stick-label {
+    position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%);
+    font-weight: 800; font-size: 1.05rem; color: var(--accent);
+    font-family: var(--display-font);
+  }
+  .stick-l { left: 26px; transform-origin: bottom center; transform: rotate(20deg); }
+  .stick-r { right: 26px; transform-origin: bottom center; transform: rotate(-20deg); }
+  .stick-l.strike { transform: rotate(38deg); }
+  .stick-r.strike { transform: rotate(-38deg); }
+
+  .stick-grid { display: grid; gap: 2px; background: var(--panel); min-width: 520px; }
+  .stick-grid .label {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 8px 12px 8px 6px; color: var(--accent);
+    font-family: var(--display-font); font-size: 1rem;
+  }
+  .stick-grid .head {
+    color: var(--muted); font-size: 0.78rem; text-align: center; padding: 4px 0 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stick-grid .head.beat { color: var(--text); font-weight: 700; font-size: 0.95rem; }
+  .stick-cell {
+    position: relative; height: 40px; background: var(--cell-bg);
+    cursor: pointer; transition: background 0.08s;
+    border-left: 1px solid transparent; user-select: none;
+  }
+  .stick-cell.beat-start { border-left: 1px solid var(--grid-line-strong); }
+  .stick-cell:hover { background: #2a2a2e; }
+  .stick-cell.on::after {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 20px; height: 20px; transform: translate(-50%,-50%);
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-dim);
+  }
+  .stick-cell.playhead { background: var(--cell-active); }
+  .stick-cell.playhead.on::after {
+    box-shadow: 0 0 16px var(--accent), 0 0 5px #fff;
+    transform: translate(-50%,-50%) scale(1.18);
+  }
+
+  @media (max-width: 720px) {
+    .home { padding: 40px 14px 60px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .exercise-card { padding: 24px 20px; }
+    .pad { width: 196px; height: 196px; }
+    .stick { height: 124px; }
+    .stick-grid .label { font-size: 0.85rem; padding-right: 6px; }
+    .stick-cell { height: 44px; }
+  }
 </style>
 </head>
-<body>
+<body data-view="home">
 
 <div class="rotate-banner" id="rotateBanner">
   <span class="rot-ico">📱</span>
@@ -428,7 +574,46 @@
   <button class="rot-close" id="rotateClose" aria-label="Cerrar">✕</button>
 </div>
 
-<div class="wrap">
+<!-- ===== Landing ===== -->
+<div id="homeView">
+  <div class="home">
+    <header class="home-head">
+      <div class="brand"><span class="brand-mark">♫</span> Astor Estudios</div>
+      <h1 class="home-title">Ejercicios de <span class="accent">Batería</span></h1>
+      <p class="home-sub">Elegí un ejercicio para practicar</p>
+    </header>
+    <div class="card-grid">
+      <button class="exercise-card" data-go="#grooves">
+        <span class="card-ico">
+          <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true">
+            <circle cx="9" cy="11" r="3.4"/><circle cx="21" cy="11" r="3.4" opacity="0.3"/><circle cx="33" cy="11" r="3.4"/><circle cx="43" cy="11" r="3.4" opacity="0.3"/>
+            <circle cx="9" cy="24" r="3.4" opacity="0.3"/><circle cx="21" cy="24" r="3.4"/><circle cx="33" cy="24" r="3.4" opacity="0.3"/><circle cx="43" cy="24" r="3.4"/>
+            <circle cx="9" cy="37" r="3.4"/><circle cx="21" cy="37" r="3.4" opacity="0.3"/><circle cx="33" cy="37" r="3.4"/><circle cx="43" cy="37" r="3.4" opacity="0.3"/>
+          </svg>
+        </span>
+        <span class="card-name">Grooves</span>
+        <span class="card-desc">Armá patrones de Hi-Hat, Snare y Kick en una grilla y escuchalos.</span>
+      </button>
+      <button class="exercise-card" data-go="#stick">
+        <span class="card-ico">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <circle cx="24" cy="31" r="12" stroke="currentColor" stroke-width="3"/>
+            <circle cx="24" cy="31" r="4.5" fill="currentColor" opacity="0.45"/>
+            <line x1="9" y1="6" x2="22" y2="27" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+            <line x1="39" y1="6" x2="26" y2="27" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="card-name">Stick Control</span>
+        <span class="card-desc">Rudimentos de manos: izquierda (I) y derecha (D) golpeando el pad.</span>
+      </button>
+    </div>
+    <p class="footer">Herramienta complementaria del curso <strong>Iniciación a la Batería</strong> · Astor Estudios.</p>
+  </div>
+</div>
+
+<!-- ===== Grooves ===== -->
+<div class="wrap" id="groovesView">
+  <button class="back-link" data-go="">← Ejercicios</button>
   <div class="top">
     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
       <h1><span class="accent">♫</span> Ejercicios de Patrones <span class="subtitle">· Astor Estudios</span></h1>
@@ -463,6 +648,58 @@
   <div id="patterns"></div>
 
   <p class="footer">Herramienta complementaria del curso <strong>Iniciación a la Batería</strong> · Astor Estudios. Usá <kbd>Space</kbd> para Play/Stop.</p>
+</div>
+
+<!-- ===== Stick Control ===== -->
+<div class="wrap" id="stickView">
+  <button class="back-link" data-go="">← Ejercicios</button>
+  <div class="top">
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+      <h1><span class="accent">🥁</span> Stick Control <span class="subtitle">· Astor Estudios</span></h1>
+    </div>
+  </div>
+
+  <div class="transport">
+    <button class="btn" id="stickPlayBtn">▶ Play</button>
+    <div class="bpm-group">
+      <label>BPM</label>
+      <input type="range" id="stickBpm" min="40" max="220" value="80" step="1">
+      <div class="bpm-value" id="stickBpmValue">80</div>
+    </div>
+    <div class="loop-group edit-only">
+      <label>Pasos</label>
+      <select id="stickSteps">
+        <option value="8">8</option>
+        <option value="16" selected>16</option>
+        <option value="32">32</option>
+      </select>
+    </div>
+    <div class="loop-group edit-only">
+      <label>Rudimento</label>
+      <select id="stickPreset">
+        <option value="">Elegir…</option>
+        <option value="single">Single Stroke</option>
+        <option value="double">Double Stroke</option>
+        <option value="paradiddle">Paradiddle</option>
+        <option value="invparadiddle">Paradiddle invertido</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stick-stage">
+    <div class="pad" id="stickPad">
+      <div class="pad-ripple" id="padRipple"></div>
+      <div class="pad-core"></div>
+      <div class="stick stick-l" id="stickL"><span class="stick-label">I</span></div>
+      <div class="stick stick-r" id="stickR"><span class="stick-label">D</span></div>
+    </div>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="stick-grid" id="stickGrid"></div>
+  </div>
+
+  <p class="footer">Practicá la coordinación de manos. <strong>I</strong> = izquierda · <strong>D</strong> = derecha. Usá <kbd>Space</kbd> para Play/Stop.</p>
 </div>
 
 <!-- Import/Export Modal -->
@@ -626,18 +863,20 @@ function getCtx() {
 }
 
 function unlockAudio() {
-  if (audioUnlocked) return;
   try {
     const ctx = getCtx();
-    // Resume context (Android/Chrome requirement)
+    // Resume context (Android/Chrome + iOS requirement). resume() is async, so
+    // we keep retrying on every gesture until the context is actually running.
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (audioUnlocked) return;
     // Play a silent 1-sample buffer (iOS Safari requirement)
     const buffer = ctx.createBuffer(1, 1, 22050);
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     src.connect(ctx.destination);
     if (src.start) src.start(0); else src.noteOn(0);
-    audioUnlocked = true;
+    // Only latch as unlocked once iOS has actually started the context.
+    if (ctx.state === 'running') audioUnlocked = true;
   } catch (e) { /* try again on next gesture */ }
 }
 
@@ -965,21 +1204,26 @@ function updateActiveUI() {
 
 function startPlayback(startIdx) {
   if (state.patterns.length === 0) return;
-  const ctx = getCtx();
-  if (ctx.state === 'suspended') ctx.resume();
   if (state.playing) stopPlayback();
-  state.playing = true;
-  state.activeIdx = startIdx;
-  currentStepLocal = 0;
-  currentPatternLocal = startIdx;
-  state.repsInPattern = 0;
-  nextNoteTime = ctx.currentTime + 0.06;
-  stepQueue = [];
-  scheduleId = setInterval(schedulerTick, lookahead);
-  requestAnimationFrame(uiTick);
-  document.getElementById('playAllBtn').textContent = '■ Stop';
-  document.getElementById('playAllBtn').classList.add('danger');
-  updateActiveUI();
+  const ctx = getCtx();
+  const begin = () => {
+    state.playing = true;
+    state.activeIdx = startIdx;
+    currentStepLocal = 0;
+    currentPatternLocal = startIdx;
+    state.repsInPattern = 0;
+    nextNoteTime = ctx.currentTime + 0.12;
+    stepQueue = [];
+    scheduleId = setInterval(schedulerTick, lookahead);
+    requestAnimationFrame(uiTick);
+    document.getElementById('playAllBtn').textContent = '■ Stop';
+    document.getElementById('playAllBtn').classList.add('danger');
+    updateActiveUI();
+  };
+  // Wait for the context to actually be running so the first notes aren't
+  // scheduled against a frozen currentTime (iOS first-tap issue).
+  if (ctx.state === 'suspended') ctx.resume().then(begin).catch(begin);
+  else begin();
 }
 
 function stopPlayback() {
@@ -1135,9 +1379,14 @@ document.getElementById('sessionTitle').addEventListener('input', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') {
-    e.preventDefault();
-    if (state.playing) stopPlayback();
-    else startPlayback(state.activeIdx < state.patterns.length ? state.activeIdx : 0);
+    if (currentView === 'stick') {
+      e.preventDefault();
+      toggleStick();
+    } else if (currentView === 'grooves') {
+      e.preventDefault();
+      if (state.playing) stopPlayback();
+      else startPlayback(state.activeIdx < state.patterns.length ? state.activeIdx : 0);
+    }
   } else if (e.key === 'Escape') {
     if (modal.classList.contains('show')) closeModal();
   }
@@ -1168,16 +1417,326 @@ if (rotateClose) {
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
 
-// ============ Editor mode ============
+// ============ Stick Control ============
+const STICK_STORAGE_KEY = 'stickControl.v1';
+const STICK_PRESETS = {
+  single:        { name: 'Single Stroke',       unit: ['L','R'] },
+  double:        { name: 'Double Stroke',        unit: ['L','L','R','R'] },
+  paradiddle:    { name: 'Paradiddle',           unit: ['L','R','L','L','R','L','R','R'] },
+  invparadiddle: { name: 'Paradiddle invertido', unit: ['R','L','R','R','L','R','L','L'] },
+};
+
+const stick = {
+  steps: 16,
+  bpm: 80,
+  lanes: { L: new Array(16).fill(0), R: new Array(16).fill(0) },
+  playing: false,
+};
+let stickLoaded = false;
+
+function stickEmptyLanes(steps) {
+  return { L: new Array(steps).fill(0), R: new Array(steps).fill(0) };
+}
+
+// Mutate stick.lanes to a rudiment preset (tiled across current steps)
+function setStickPreset(key) {
+  const preset = STICK_PRESETS[key];
+  if (!preset) return false;
+  const lanes = stickEmptyLanes(stick.steps);
+  for (let s = 0; s < stick.steps; s++) {
+    const hand = preset.unit[s % preset.unit.length];
+    lanes.L[s] = hand === 'L' ? 1 : 0;
+    lanes.R[s] = hand === 'R' ? 1 : 0;
+  }
+  stick.lanes = lanes;
+  return true;
+}
+
+function saveStick() {
+  try {
+    localStorage.setItem(STICK_STORAGE_KEY, JSON.stringify({
+      version: 1, steps: stick.steps, bpm: stick.bpm, lanes: stick.lanes,
+    }));
+  } catch (e) { /* ignore */ }
+}
+
+function loadStick() {
+  try {
+    const raw = localStorage.getItem(STICK_STORAGE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (![8, 16, 32].includes(d.steps)) return false;
+    const L = (d.lanes && Array.isArray(d.lanes.L)) ? d.lanes.L : null;
+    const R = (d.lanes && Array.isArray(d.lanes.R)) ? d.lanes.R : null;
+    if (!L || !R || L.length !== d.steps || R.length !== d.steps) return false;
+    stick.steps = d.steps;
+    stick.bpm = (typeof d.bpm === 'number' && d.bpm >= 40 && d.bpm <= 220) ? d.bpm : 80;
+    stick.lanes = { L: L.map(v => v ? 1 : 0), R: R.map(v => v ? 1 : 0) };
+    return true;
+  } catch (e) { return false; }
+}
+
+function ensureStickLoaded() {
+  if (stickLoaded) return;
+  stickLoaded = true;
+  if (!loadStick()) setStickPreset('single');
+  syncStickControls();
+}
+
+function renderStick() {
+  const grid = document.getElementById('stickGrid');
+  if (!grid) return;
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+  grid.style.gridTemplateColumns = '60px repeat(' + stick.steps + ', 1fr)';
+
+  const labels = stepLabels(stick.steps);
+  const spb = stepsPerBeat(stick.steps);
+
+  grid.appendChild(makeEl('div', { cls: 'label' }));
+  labels.forEach((lbl, si) => {
+    grid.appendChild(makeEl('div', { cls: 'head' + (si % spb === 0 ? ' beat' : ''), text: lbl }));
+  });
+
+  [['L', 'I'], ['R', 'D']].forEach(([lane, label]) => {
+    grid.appendChild(makeEl('div', { cls: 'label', text: label }));
+    for (let s = 0; s < stick.steps; s++) {
+      const cell = makeEl('div', {
+        cls: 'stick-cell' + (s % spb === 0 ? ' beat-start' : '') + (stick.lanes[lane][s] ? ' on' : ''),
+        data: { lane, step: s }
+      });
+      attachStickPaint(cell, lane, s);
+      grid.appendChild(cell);
+    }
+  });
+}
+
+// Reuses the global paintMode / isPainting stroke state (only one view active at a time)
+function attachStickPaint(cell, lane, s) {
+  if (!isEditorMode) return;
+  cell.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    paintMode = stick.lanes[lane][s] ? 0 : 1;
+    isPainting = true;
+    stick.lanes[lane][s] = paintMode;
+    cell.classList.toggle('on', !!paintMode);
+    saveStick();
+  });
+  cell.addEventListener('pointerenter', () => {
+    if (!isPainting || paintMode === null) return;
+    if (stick.lanes[lane][s] !== paintMode) {
+      stick.lanes[lane][s] = paintMode;
+      cell.classList.toggle('on', !!paintMode);
+      saveStick();
+    }
+  });
+}
+
+// Pad voice (membrane tone + stick attack noise). Left/right differ slightly in
+// pitch & timbre so each hand is distinguishable by ear (not by volume).
+function playPad(time, hand) {
+  const ctx = getCtx();
+  const startFreq = hand === 'R' ? 215 : 160;
+  const endFreq   = hand === 'R' ? 108 : 80;
+  const osc = ctx.createOscillator(); osc.type = 'sine';
+  osc.frequency.setValueAtTime(startFreq, time);
+  osc.frequency.exponentialRampToValueAtTime(endFreq, time + 0.06);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.6, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(time); osc.stop(time + 0.2);
+
+  const bufSize = Math.floor(0.03 * ctx.sampleRate);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * 0.6;
+  const noise = ctx.createBufferSource(); noise.buffer = buf;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass';
+  hp.frequency.value = hand === 'R' ? 2600 : 1700;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.35, time);
+  ng.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+  noise.connect(hp).connect(ng).connect(ctx.destination);
+  noise.start(time); noise.stop(time + 0.05);
+}
+
+// Dedicated scheduler (mirrors the grooves one, see startPlayback above)
+let stickNextNoteTime = 0;
+let stickStep = 0;
+let stickQueue = [];
+let stickScheduleId = null;
+const STRIKE_MS = 110;
+
+function stickStepDuration() {
+  return (60.0 / stick.bpm) / (stick.steps / 4);
+}
+
+function scheduleStickStep(step, time) {
+  const hands = [];
+  if (stick.lanes.L[step]) { playPad(time, 'L'); hands.push('L'); }
+  if (stick.lanes.R[step]) { playPad(time, 'R'); hands.push('R'); }
+  stickQueue.push({ step, time, hands });
+}
+
+function stickNextStep() {
+  stickNextNoteTime += stickStepDuration();
+  stickStep++;
+  if (stickStep >= stick.steps) stickStep = 0;
+}
+
+function stickSchedulerTick() {
+  const ctx = getCtx();
+  while (stickNextNoteTime < ctx.currentTime + scheduleAheadTime) {
+    scheduleStickStep(stickStep, stickNextNoteTime);
+    stickNextStep();
+  }
+}
+
+function highlightStickStep(step) {
+  document.querySelectorAll('.stick-cell.playhead').forEach(c => c.classList.remove('playhead'));
+  if (!stick.playing) return;
+  document.querySelectorAll('.stick-cell[data-step="' + step + '"]').forEach(c => c.classList.add('playhead'));
+}
+
+function strikeStick(hand) {
+  const el = document.getElementById(hand === 'L' ? 'stickL' : 'stickR');
+  if (!el) return;
+  el.classList.add('strike');
+  setTimeout(() => el.classList.remove('strike'), STRIKE_MS);
+}
+
+function triggerRipple() {
+  const r = document.getElementById('padRipple');
+  if (!r) return;
+  r.classList.remove('go');
+  void r.offsetWidth; // restart animation
+  r.classList.add('go');
+}
+
+function stickUiTick() {
+  if (!stick.playing) return;
+  const ctx = getCtx();
+  while (stickQueue.length > 0 && stickQueue[0].time <= ctx.currentTime) {
+    const ev = stickQueue.shift();
+    highlightStickStep(ev.step);
+    ev.hands.forEach(strikeStick);
+    if (ev.hands.length) triggerRipple();
+  }
+  requestAnimationFrame(stickUiTick);
+}
+
+function startStick() {
+  if (stick.playing) return;
+  const ctx = getCtx();
+  const begin = () => {
+    stick.playing = true;
+    stickStep = 0;
+    stickQueue = [];
+    stickNextNoteTime = ctx.currentTime + 0.12;
+    stickScheduleId = setInterval(stickSchedulerTick, lookahead);
+    requestAnimationFrame(stickUiTick);
+    const btn = document.getElementById('stickPlayBtn');
+    if (btn) { btn.textContent = '■ Stop'; btn.classList.add('danger'); }
+  };
+  // Wait for the context to actually be running (iOS first-tap issue).
+  if (ctx.state === 'suspended') ctx.resume().then(begin).catch(begin);
+  else begin();
+}
+
+function stopStick() {
+  stick.playing = false;
+  if (stickScheduleId) clearInterval(stickScheduleId);
+  stickScheduleId = null;
+  document.querySelectorAll('.stick-cell.playhead').forEach(c => c.classList.remove('playhead'));
+  document.querySelectorAll('.stick.strike').forEach(c => c.classList.remove('strike'));
+  const btn = document.getElementById('stickPlayBtn');
+  if (btn) { btn.textContent = '▶ Play'; btn.classList.remove('danger'); }
+}
+
+function toggleStick() { stick.playing ? stopStick() : startStick(); }
+
+function syncStickControls() {
+  const bpm = document.getElementById('stickBpm');
+  const bpmVal = document.getElementById('stickBpmValue');
+  const steps = document.getElementById('stickSteps');
+  if (bpm) bpm.value = stick.bpm;
+  if (bpmVal) bpmVal.textContent = stick.bpm;
+  if (steps) steps.value = String(stick.steps);
+}
+
+// Stick controls wiring
+document.getElementById('stickPlayBtn').addEventListener('click', toggleStick);
+document.getElementById('stickBpm').addEventListener('input', (e) => {
+  stick.bpm = +e.target.value;
+  document.getElementById('stickBpmValue').textContent = stick.bpm;
+  saveStick();
+});
+document.getElementById('stickSteps').addEventListener('change', (e) => {
+  const n = +e.target.value;
+  const lanes = stickEmptyLanes(n);
+  ['L', 'R'].forEach(k => {
+    const min = Math.min(n, stick.lanes[k].length);
+    for (let i = 0; i < min; i++) lanes[k][i] = stick.lanes[k][i];
+  });
+  stick.lanes = lanes;
+  stick.steps = n;
+  saveStick();
+  renderStick();
+});
+document.getElementById('stickPreset').addEventListener('change', (e) => {
+  const key = e.target.value;
+  if (key && setStickPreset(key)) { saveStick(); renderStick(); showToast(STICK_PRESETS[key].name + ' ✓'); }
+  e.target.value = '';
+});
+
+// ============ Router ============
 let isEditorMode = false;
-function applyEditorMode() {
-  isEditorMode = window.location.hash.toLowerCase() === '#editor';
+let currentView = 'home';
+
+function parseRoute() {
+  const h = (window.location.hash || '').toLowerCase().replace(/^#/, '');
+  if (h === 'editor' || h === 'grooves/editor') return { view: 'grooves', editor: true };
+  if (h === 'grooves') return { view: 'grooves', editor: false };
+  if (h === 'stick/editor') return { view: 'stick', editor: true };
+  if (h === 'stick') return { view: 'stick', editor: false };
+  return { view: 'home', editor: false };
+}
+
+function applyRoute() {
+  const r = parseRoute();
+  if (state.playing) stopPlayback();
+  if (stick.playing) stopStick();
+
+  currentView = r.view;
+  isEditorMode = r.editor;
+  document.body.setAttribute('data-view', r.view);
   document.body.classList.toggle('viewer-only', !isEditorMode);
+
   const sessionTitleEl = document.getElementById('sessionTitle');
   sessionTitleEl.readOnly = !isEditorMode;
-  renderAll();
+
+  if (r.view === 'grooves') {
+    renderAll();
+  } else if (r.view === 'stick') {
+    ensureStickLoaded();
+    renderStick();
+  }
 }
-window.addEventListener('hashchange', applyEditorMode);
+window.addEventListener('hashchange', applyRoute);
+
+// Card / back-link navigation
+document.addEventListener('click', (e) => {
+  const nav = e.target.closest('[data-go]');
+  if (!nav) return;
+  e.preventDefault();
+  const dest = nav.getAttribute('data-go') || '';
+  if (dest) {
+    window.location.hash = dest;
+  } else {
+    window.location.hash = '';
+    applyRoute(); // empty->empty may not fire hashchange
+  }
+});
 
 // ============ Init ============
 async function loadDefaultGrooves() {
@@ -1193,10 +1752,11 @@ async function loadDefaultGrooves() {
 (async () => {
   const loaded = load();
   syncControls();
-  applyEditorMode();
+  applyRoute();
   checkOrientation();
   if (!loaded || state.patterns.length === 0) {
     await loadDefaultGrooves();
+    if (currentView === 'grooves') renderAll();
   }
 })();
 </script>
