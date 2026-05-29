@@ -657,6 +657,11 @@
     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
       <h1><span class="accent">🥁</span> Stick Control <span class="subtitle">· Astor Estudios</span></h1>
     </div>
+    <div class="toolbar edit-only">
+      <button class="btn ghost" id="stickImportBtn">⬇ Importar</button>
+      <button class="btn ghost" id="stickExportBtn">⬆ Exportar</button>
+      <button class="btn dim" id="stickClearBtn">Limpiar</button>
+    </div>
   </div>
 
   <div class="transport">
@@ -1273,10 +1278,13 @@ const modalApplyBtn = document.getElementById('modalApplyBtn');
 const modalCopyBtn = document.getElementById('modalCopyBtn');
 const modalDownloadBtn = document.getElementById('modalDownloadBtn');
 
-function openExport() {
+let modalMode = 'grooves';
+
+function openExport(mode) {
+  modalMode = mode || 'grooves';
   modalTitle.textContent = 'Exportar JSON';
   modalHint.textContent = 'Copiá el JSON o descargalo como archivo.';
-  modalText.value = JSON.stringify(exportJSON(), null, 2);
+  modalText.value = JSON.stringify(modalMode === 'stick' ? stickExportJSON() : exportJSON(), null, 2);
   modalText.readOnly = true;
   modalApplyBtn.style.display = 'none';
   modalCopyBtn.style.display = '';
@@ -1285,9 +1293,10 @@ function openExport() {
   modal.classList.add('show');
 }
 
-function openImport() {
+function openImport(mode) {
+  modalMode = mode || 'grooves';
   modalTitle.textContent = 'Importar JSON';
-  modalHint.textContent = 'Pegá un JSON exportado previamente. Reemplaza la sesión actual.';
+  modalHint.textContent = 'Pegá un JSON exportado previamente. Reemplaza el contenido actual.';
   modalText.value = '';
   modalText.readOnly = false;
   modalApplyBtn.style.display = '';
@@ -1306,7 +1315,8 @@ modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); }
 modalApplyBtn.addEventListener('click', () => {
   try {
     const data = JSON.parse(modalText.value);
-    applyImported(data, true);
+    if (modalMode === 'stick') applyStickImported(data, true);
+    else applyImported(data, true);
     closeModal();
     showToast('Importado ✓');
   } catch (e) {
@@ -1329,7 +1339,8 @@ modalDownloadBtn.addEventListener('click', () => {
   const blob = new Blob([modalText.value], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const safe = (state.sessionTitle || 'sesion').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 40);
+  const base = modalMode === 'stick' ? 'stick-control' : (state.sessionTitle || 'sesion');
+  const safe = base.replace(/[^a-z0-9-_]+/gi, '_').slice(0, 40);
   a.href = url;
   a.download = safe + '.json';
   document.body.appendChild(a);
@@ -1481,6 +1492,34 @@ function ensureStickLoaded() {
   stickLoaded = true;
   if (!loadStick()) setStickPreset('single');
   syncStickControls();
+}
+
+function stickExportJSON() {
+  return { version: 1, type: 'stickControl', steps: stick.steps, bpm: stick.bpm, lanes: stick.lanes };
+}
+
+function applyStickImported(data, refresh) {
+  if (!data || typeof data !== 'object') throw new Error('JSON inválido');
+  if (![8, 16, 32].includes(data.steps)) throw new Error('"steps" debe ser 8, 16 o 32');
+  if (!data.lanes || !Array.isArray(data.lanes.L) || !Array.isArray(data.lanes.R)) {
+    throw new Error('Faltan los carriles "lanes.L" y "lanes.R"');
+  }
+  if (data.lanes.L.length !== data.steps || data.lanes.R.length !== data.steps) {
+    throw new Error('Cada carril debe tener ' + data.steps + ' elementos');
+  }
+  stopStick();
+  stick.steps = data.steps;
+  stick.bpm = (typeof data.bpm === 'number' && data.bpm >= 40 && data.bpm <= 220) ? data.bpm : stick.bpm;
+  stick.lanes = { L: data.lanes.L.map(v => v ? 1 : 0), R: data.lanes.R.map(v => v ? 1 : 0) };
+  if (refresh) { saveStick(); syncStickControls(); renderStick(); }
+}
+
+function clearStick() {
+  if (!confirm('¿Limpiar todos los rudimentos?')) return;
+  stopStick();
+  stick.lanes = stickEmptyLanes(stick.steps);
+  saveStick();
+  renderStick();
 }
 
 function renderStick() {
@@ -1688,6 +1727,9 @@ document.getElementById('stickPreset').addEventListener('change', (e) => {
   if (key && setStickPreset(key)) { saveStick(); renderStick(); showToast(STICK_PRESETS[key].name + ' ✓'); }
   e.target.value = '';
 });
+document.getElementById('stickImportBtn').addEventListener('click', () => openImport('stick'));
+document.getElementById('stickExportBtn').addEventListener('click', () => openExport('stick'));
+document.getElementById('stickClearBtn').addEventListener('click', clearStick);
 
 // ============ Router ============
 let isEditorMode = false;
