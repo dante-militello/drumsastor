@@ -632,8 +632,8 @@
 
     <div class="bpm-group">
       <label>BPM</label>
-      <input type="range" id="bpmRange" min="40" max="220" value="90" step="1">
-      <div class="bpm-value" id="bpmValue">90</div>
+      <input type="range" id="bpmRange" min="40" max="220" value="160" step="1">
+      <div class="bpm-value" id="bpmValue">160</div>
     </div>
 
     <div class="loop-group">
@@ -668,8 +668,8 @@
     <button class="btn" id="stickPlayBtn">▶ Play</button>
     <div class="bpm-group">
       <label>BPM</label>
-      <input type="range" id="stickBpm" min="40" max="220" value="80" step="1">
-      <div class="bpm-value" id="stickBpmValue">80</div>
+      <input type="range" id="stickBpm" min="40" max="220" value="160" step="1">
+      <div class="bpm-value" id="stickBpmValue">160</div>
     </div>
     <div class="loop-group edit-only">
       <label>Pasos</label>
@@ -751,7 +751,7 @@ function stepsPerBeat(steps) { return steps / 4; }
 const state = {
   sessionTitle: 'Ejercicios de Patrones',
   patterns: [], // {id, title, steps, tracks}
-  bpm: 90,
+  bpm: 160,
   loopMode: 'single',
   playing: false,
   activeIdx: 0,
@@ -830,7 +830,7 @@ function applyImported(data, refresh) {
   data.patterns.forEach((p, i) => validatePattern(p, i));
 
   state.sessionTitle = typeof data.title === 'string' ? data.title : 'Ejercicios de Patrones';
-  state.bpm = (typeof data.bpm === 'number' && data.bpm >= 40 && data.bpm <= 220) ? data.bpm : 90;
+  state.bpm = (typeof data.bpm === 'number' && data.bpm >= 40 && data.bpm <= 220) ? data.bpm : 160;
   state.loopMode = (data.loopMode === 'sequence') ? 'sequence' : 'single';
   state.patterns = data.patterns.map(p => ({
     id: uid(),
@@ -1141,7 +1141,9 @@ let stepQueue = [];
 let scheduleId = null;
 
 function stepDuration(steps) {
-  return (60.0 / state.bpm) / (steps / 4);
+  // En grooves cada celda equivale a un pulso del BPM mostrado, de modo que el
+  // número del slider coincide exactamente con el tempo percibido (60 / bpm por celda).
+  return 60.0 / state.bpm;
 }
 
 function highlightStep(patternIdx, step) {
@@ -1439,7 +1441,7 @@ const STICK_PRESETS = {
 
 const stick = {
   steps: 16,
-  bpm: 80,
+  bpm: 160,
   lanes: { L: new Array(16).fill(0), R: new Array(16).fill(0) },
   playing: false,
 };
@@ -1481,7 +1483,7 @@ function loadStick() {
     const R = (d.lanes && Array.isArray(d.lanes.R)) ? d.lanes.R : null;
     if (!L || !R || L.length !== d.steps || R.length !== d.steps) return false;
     stick.steps = d.steps;
-    stick.bpm = (typeof d.bpm === 'number' && d.bpm >= 40 && d.bpm <= 220) ? d.bpm : 80;
+    stick.bpm = (typeof d.bpm === 'number' && d.bpm >= 40 && d.bpm <= 220) ? d.bpm : 160;
     stick.lanes = { L: L.map(v => v ? 1 : 0), R: R.map(v => v ? 1 : 0) };
     return true;
   } catch (e) { return false; }
@@ -1607,7 +1609,9 @@ let stickScheduleId = null;
 const STRIKE_MS = 110;
 
 function stickStepDuration() {
-  return (60.0 / stick.bpm) / (stick.steps / 4);
+  // Cada celda equivale a un pulso del BPM mostrado, igual que en grooves,
+  // para que el número del slider coincida con el tempo percibido.
+  return 60.0 / stick.bpm;
 }
 
 function scheduleStickStep(step, time) {
