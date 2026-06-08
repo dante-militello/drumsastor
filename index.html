@@ -1141,9 +1141,9 @@ let stepQueue = [];
 let scheduleId = null;
 
 function stepDuration(steps) {
-  // En grooves cada celda equivale a un pulso del BPM mostrado, de modo que el
-  // número del slider coincide exactamente con el tempo percibido (60 / bpm por celda).
-  return 60.0 / state.bpm;
+  // En grooves cada celda es una subdivisión (4 celdas = 1 pulso en 16 pasos),
+  // por eso se divide la duración del pulso entre los pasos por pulso.
+  return (60.0 / state.bpm) / (steps / 4);
 }
 
 function highlightStep(patternIdx, step) {
