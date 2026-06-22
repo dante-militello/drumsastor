@@ -1741,10 +1741,12 @@ let currentView = 'home';
 
 function parseRoute() {
   const h = (window.location.hash || '').toLowerCase().replace(/^#/, '');
-  if (h === 'editor' || h === 'grooves/editor') return { view: 'grooves', editor: true };
-  if (h === 'grooves') return { view: 'grooves', editor: false };
-  if (h === 'stick/editor') return { view: 'stick', editor: true };
-  if (h === 'stick') return { view: 'stick', editor: false };
+  // Editor mode is the default for both views. Append #grooves/viewer or
+  // #stick/viewer to get the read-only viewer experience.
+  if (h === 'grooves/viewer') return { view: 'grooves', editor: false };
+  if (h === 'stick/viewer') return { view: 'stick', editor: false };
+  if (h === 'editor' || h === 'grooves/editor' || h === 'grooves') return { view: 'grooves', editor: true };
+  if (h === 'stick/editor' || h === 'stick') return { view: 'stick', editor: true };
   return { view: 'home', editor: false };
 }
 
